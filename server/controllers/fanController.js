@@ -2,12 +2,11 @@ import cloudinary from "../config/cloudinary.js";
 import Event from "../models/Event.js";
 import FanSelfie from "../models/FanSelfie.js";
 import Photo from "../models/Photo.js";
-
-import { extractFaceDescriptors } from "../faceEngine/detectFaces.js";
-import { matchFace } from "../faceEngine/matchFaces.js";
+import axios from "axios";
 
 /* =================================================
    1️⃣ UPLOAD FAN SELFIE
+   POST /api/fan/upload/:qrCodeId
 ================================================= */
 export const uploadFanSelfie = async (req, res) => {
     try {
@@ -28,9 +27,12 @@ export const uploadFanSelfie = async (req, res) => {
             });
         }
 
+        // Upload selfie to Cloudinary
         const upload = await cloudinary.uploader.upload(
             `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`,
-            { folder: `fan-selfies/${event._id}` }
+            {
+                folder: `fan-selfies/${event._id}`,
+            }
         );
 
         const selfie = await FanSelfie.create({
@@ -56,20 +58,19 @@ export const uploadFanSelfie = async (req, res) => {
 };
 
 /* =================================================
-   2️⃣ MATCH FAN SELFIE WITH EVENT PHOTOS
+   2️⃣ MATCH FAN SELFIE (PRODUCTION – RAILWAY)
+   GET /api/fan/match/:selfieId
 ================================================= */
 export const matchFanSelfie = async (req, res) => {
     try {
-        // 🚫 Face engine disabled in production
-        if (process.env.ENABLE_FACE_ENGINE !== "true") {
-            return res.status(503).json({
+        const { selfieId } = req.params;
+
+        if (!process.env.FACE_ENGINE_URL) {
+            return res.status(500).json({
                 success: false,
-                message: "Face matching is disabled in production",
-                matchedImages: []
+                message: "Face engine URL not configured",
             });
         }
-
-        const { selfieId } = req.params;
 
         const selfie = await FanSelfie.findById(selfieId);
         if (!selfie) {
@@ -79,19 +80,7 @@ export const matchFanSelfie = async (req, res) => {
             });
         }
 
-        /* 🔍 Extract face from selfie */
-        const fanFaces = await extractFaceDescriptors(selfie.imageUrl);
-
-        if (!fanFaces || fanFaces.length !== 1) {
-            return res.json({
-                success: true,
-                matchedImages: [],
-            });
-        }
-
-        const fanDescriptor = fanFaces[0];
-
-        /* 📸 Fetch event photos */
+        // Fetch processed photos for the event
         const photos = await Photo.find({
             eventId: selfie.eventId,
             isProcessed: true,
@@ -99,61 +88,46 @@ export const matchFanSelfie = async (req, res) => {
             faceCount: { $gt: 0 },
         });
 
-        const STRONG = 70;
-        const GOOD = 55;
-        const POSSIBLE = 20;
-
-        const matches = [];
-
-        for (const photo of photos) {
-            let bestConfidence = 0;
-
-            for (const face of photo.faceDescriptors) {
-                if (!face || face.length !== fanDescriptor.length) continue;
-
-                const distance = matchFace(fanDescriptor, face);
-                const confidence = Math.round(
-                    Math.max(0, (1 - distance / 0.8)) * 100
-                );
-
-                if (confidence > bestConfidence) {
-                    bestConfidence = confidence;
-                }
-            }
-
-            if (bestConfidence >= POSSIBLE) {
-                matches.push({
-                    imageUrl: photo.imageUrl,
-                    confidence: bestConfidence,
-                    level:
-                        bestConfidence >= STRONG
-                            ? "strong"
-                            : bestConfidence >= GOOD
-                                ? "good"
-                                : "possible",
-                });
-            }
+        if (!photos.length) {
+            return res.json({
+                success: true,
+                matchedImages: [],
+            });
         }
 
-        matches.sort((a, b) => b.confidence - a.confidence);
+        // Call Railway Face Engine
+        const response = await axios.post(
+            `${process.env.FACE_ENGINE_URL}/match`,
+            {
+                selfieUrl: selfie.imageUrl,
+                photos: photos.map(photo => ({
+                    imageUrl: photo.imageUrl,
+                    faceDescriptors: photo.faceDescriptors,
+                })),
+            },
+            {
+                timeout: 120000, // ⏱️ 2 minutes (models load time)
+            }
+        );
 
         return res.json({
             success: true,
-            matchedImages: matches,
+            matchedImages: response.data.matches || [],
         });
 
     } catch (error) {
-        console.error("❌ matchFanSelfie error:", error);
+        console.error("❌ matchFanSelfie error:", error.message);
+
         return res.status(500).json({
             success: false,
-            message: "Internal server error",
+            message: "Face matching failed",
         });
     }
 };
 
-
 /* =================================================
-   3️⃣ ADMIN: GET ALL FAN MATCHES FOR EVENT
+   3️⃣ ADMIN – GET ALL FAN SELFIES FOR EVENT
+   GET /api/fan/event/:eventId
 ================================================= */
 export const getEventMatches = async (req, res) => {
     try {
