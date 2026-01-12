@@ -109,7 +109,6 @@ const processFaceAsync = async (photoId, imageUrl) => {
         await Photo.findByIdAndUpdate(photoId, {
             faceDescriptors: descriptors,
             faceCount: descriptors.length,
-            isProcessed: true,
         });
 
         console.log(
@@ -126,9 +125,7 @@ const processFaceAsync = async (photoId, imageUrl) => {
             error.message
         );
 
-        await Photo.findByIdAndUpdate(photoId, {
-            isProcessed: false,
-        });
+
     }
 };
 

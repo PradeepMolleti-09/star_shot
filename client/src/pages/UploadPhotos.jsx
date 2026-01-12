@@ -231,12 +231,7 @@ export default function UploadPhotos() {
                                         className="rounded-2xl shadow-md object-cover w-full h-60"
                                     />
 
-                                    {/* 🔄 PROCESSING BADGE */}
-                                    {!photo.isProcessed && (
-                                        <span className="absolute bottom-3 left-3 bg-yellow-500 text-white text-xs px-3 py-1 rounded-full">
-                                            Processing…
-                                        </span>
-                                    )}
+
 
                                     <button
                                         onClick={() => handleDelete(photo._id)}

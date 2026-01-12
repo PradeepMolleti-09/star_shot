@@ -83,7 +83,6 @@ export const matchFanSelfie = async (req, res) => {
         // Fetch processed photos for the event
         const photos = await Photo.find({
             eventId: selfie.eventId,
-            isProcessed: true,
             isDeleted: false,
             faceCount: { $gt: 0 },
         });
