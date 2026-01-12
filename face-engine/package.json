@@ -1,0 +1,14 @@
+{
+    "name": "face-engine",
+    "type": "module",
+    "scripts": {
+        "start": "node server.js"
+    },
+    "dependencies": {
+        "express": "^4.19.2",
+        "face-api.js": "^0.22.2",
+        "@tensorflow/tfjs-node": "^4.16.0",
+        "canvas": "^2.11.2",
+        "axios": "^1.6.7"
+    }
+}
