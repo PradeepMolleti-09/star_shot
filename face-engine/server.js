@@ -50,7 +50,7 @@ app.post("/match", async (req, res) => {
                 );
 
                 const confidence = Math.round(
-                    Math.max(0, (1 - distance / 0.6)) * 100
+                    Math.max(0, (1 - distance)) * 100
                 );
 
                 if (confidence >= 20) {
@@ -61,6 +61,12 @@ app.post("/match", async (req, res) => {
                 }
             }
         }
+
+        results.push({
+            imageUrl: photo.imageUrl,
+            confidence,
+            distance
+        });
 
         results.sort((a, b) => b.confidence - a.confidence);
         res.json({ matches: results });
