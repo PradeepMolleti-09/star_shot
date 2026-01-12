@@ -80,7 +80,7 @@ export const matchFanSelfie = async (req, res) => {
             });
         }
 
-        // Fetch processed photos for the event
+        // 1️⃣ Get event photos WITH faces
         const photos = await Photo.find({
             eventId: selfie.eventId,
             isDeleted: false,
@@ -94,7 +94,7 @@ export const matchFanSelfie = async (req, res) => {
             });
         }
 
-        // Call Railway Face Engine
+        // 2️⃣ Call face engine
         const response = await axios.post(
             `${process.env.FACE_ENGINE_URL}/match`,
             {
@@ -104,45 +104,33 @@ export const matchFanSelfie = async (req, res) => {
                     faceDescriptors: photo.faceDescriptors,
                 })),
             },
-            {
-                timeout: 120000, // ⏱️ 2 minutes (models load time)
-            }
+            { timeout: 120000 }
         );
 
-        const rawMatches = (response.data.matches || [])
-            .filter(m =>
-                m.distance <= 0.7 && m.confidence >= 35
-            )
-            .sort((a, b) => b.confidence - a.confidence);
+        const engineMatches = response.data.matches || [];
 
-        // ✅ KEEP ONLY BEST MATCH PER PHOTO
-        const uniqueMatchesMap = {};
+        // 3️⃣ HARD FILTER + BEST MATCH PER PHOTO
+        const bestPerPhoto = new Map();
 
-        for (const match of rawMatches) {
-            const key = match.imageUrl;
+        for (const m of engineMatches) {
+            // ❌ HARD REJECTION (MOST IMPORTANT PART)
+            if (m.distance > 0.6) continue;
+            if (m.confidence < 45) continue;
 
-            if (
-                !uniqueMatchesMap[key] ||
-                match.confidence > uniqueMatchesMap[key].confidence
-            ) {
-                uniqueMatchesMap[key] = match;
+            const existing = bestPerPhoto.get(m.imageUrl);
+
+            if (!existing || m.confidence > existing.confidence) {
+                bestPerPhoto.set(m.imageUrl, m);
             }
         }
 
-        const uniqueMatches = Object.values(uniqueMatchesMap);
-
-        // ✅ SORT BY CONFIDENCE
-        uniqueMatches.sort((a, b) => b.confidence - a.confidence);
-
-        return res.json({
-            success: true,
-            matchedImages: uniqueMatches,
-        });
-
+        // 4️⃣ FINAL RESULTS
+        const finalMatches = Array.from(bestPerPhoto.values())
+            .sort((a, b) => b.confidence - a.confidence);
 
         return res.json({
             success: true,
-            matchedImages: matches,
+            matchedImages: finalMatches,
         });
 
     } catch (error) {
