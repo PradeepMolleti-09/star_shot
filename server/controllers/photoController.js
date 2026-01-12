@@ -30,27 +30,44 @@ export const uploadEventPhotos = async (req, res) => {
         const createdPhotos = [];
 
         for (const file of req.files) {
-            /* 1️⃣ Upload to Cloudinary */
+            // 1️⃣ Upload to Cloudinary
             const cloudRes = await cloudinary.uploader.upload(
                 `data:${file.mimetype};base64,${file.buffer.toString("base64")}`,
-                { folder: `events/${event._id}` }
+                {
+                    folder: `events/${event._id}`,
+                    width: 1024,
+                    height: 1024,
+                    crop: "limit",
+                    quality: "auto",
+                }
             );
 
-            /* 2️⃣ Save photo FIRST (fast response) */
+            // 2️⃣ Extract faces (WAIT)
+            const faceRes = await axios.post(
+                `${process.env.FACE_ENGINE_URL}/extract`,
+                { imageUrl: cloudRes.secure_url },
+                { timeout: 120000 }
+            );
+
+            const descriptors = faceRes.data.descriptors || [];
+
+            // 🚫 Skip photos with NO faces
+            if (!descriptors.length) {
+                await cloudinary.uploader.destroy(cloudRes.public_id);
+                continue;
+            }
+
+            // 3️⃣ Save ONLY AFTER processing
             const photo = await Photo.create({
                 eventId: event._id,
                 imageUrl: cloudRes.secure_url,
                 cloudinaryId: cloudRes.public_id,
-                faceDescriptors: [],
-                faceCount: 0,
-                isProcessed: false, // ⏳ processed asynchronously
+                faceDescriptors: descriptors,
+                faceCount: descriptors.length,
                 isDeleted: false,
             });
 
             createdPhotos.push(photo);
-
-            /* 3️⃣ Async face processing (NON-BLOCKING) */
-            processFaceAsync(photo._id, cloudRes.secure_url);
         }
 
         event.totalPhotos += createdPhotos.length;
@@ -70,6 +87,7 @@ export const uploadEventPhotos = async (req, res) => {
         });
     }
 };
+
 
 /* =================================================
    BACKGROUND FACE PROCESSING (FACE-ENGINE)
