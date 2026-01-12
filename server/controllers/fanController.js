@@ -110,9 +110,34 @@ export const matchFanSelfie = async (req, res) => {
             }
         );
 
-        const matches = (response.data.matches || []).filter(
-            m => m.confidence >= 30   // 👈 LOWER THIS
+        const rawMatches = (response.data.matches || []).filter(
+            m => m.confidence >= 30
         );
+
+        // ✅ KEEP ONLY BEST MATCH PER PHOTO
+        const uniqueMatchesMap = {};
+
+        for (const match of rawMatches) {
+            const key = match.imageUrl;
+
+            if (
+                !uniqueMatchesMap[key] ||
+                match.confidence > uniqueMatchesMap[key].confidence
+            ) {
+                uniqueMatchesMap[key] = match;
+            }
+        }
+
+        const uniqueMatches = Object.values(uniqueMatchesMap);
+
+        // ✅ SORT BY CONFIDENCE
+        uniqueMatches.sort((a, b) => b.confidence - a.confidence);
+
+        return res.json({
+            success: true,
+            matchedImages: uniqueMatches,
+        });
+
 
         return res.json({
             success: true,
