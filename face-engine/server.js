@@ -3,7 +3,7 @@ import * as faceapi from "face-api.js";
 import canvas from "canvas";
 import path from "path";
 
-const { Canvas, Image, ImageData } = canvas;
+const { Canvas, Image, ImageData, loadImage } = canvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
 const app = express();
@@ -16,21 +16,40 @@ let modelsLoaded = false;
 async function loadModels() {
     if (modelsLoaded) return;
 
-    await faceapi.nets.ssdMobilenetv1.loadFromDisk(MODEL_PATH);
-    await faceapi.nets.faceLandmark68Net.loadFromDisk(MODEL_PATH);
-    await faceapi.nets.faceRecognitionNet.loadFromDisk(MODEL_PATH);
+    try {
+        console.log("🧠 Loading face models...");
+        console.log("📁 Model path:", MODEL_PATH);
 
-    modelsLoaded = true;
-    console.log("🧠 Face models loaded");
+        await faceapi.nets.ssdMobilenetv1.loadFromDisk(MODEL_PATH);
+        await faceapi.nets.faceLandmark68Net.loadFromDisk(MODEL_PATH);
+        await faceapi.nets.faceRecognitionNet.loadFromDisk(MODEL_PATH);
+
+        modelsLoaded = true;
+        console.log("🧠 Face models loaded");
+    } catch (err) {
+        console.error("❌ Failed to load face models:", err);
+        throw err;
+    }
 }
 
+/* ---------------- HEALTH CHECK ---------------- */
+app.get("/", async (req, res) => {
+    try {
+        await loadModels();
+        res.json({ status: "ok", modelsLoaded });
+    } catch {
+        res.status(500).json({ status: "error", modelsLoaded: false });
+    }
+});
+
+/* ---------------- MATCH ENDPOINT ---------------- */
 app.post("/match", async (req, res) => {
     try {
         await loadModels();
 
         const { selfieUrl, photos } = req.body;
 
-        const selfieImg = await canvas.loadImage(selfieUrl);
+        const selfieImg = await loadImage(selfieUrl);
         const selfieDetection = await faceapi
             .detectSingleFace(selfieImg)
             .withFaceLandmarks()
@@ -53,26 +72,19 @@ app.post("/match", async (req, res) => {
                     Math.max(0, (1 - distance)) * 100
                 );
 
-                if (confidence >= 20) {
-                    results.push({
-                        imageUrl: photo.imageUrl,
-                        confidence
-                    });
-                }
+                results.push({
+                    imageUrl: photo.imageUrl,
+                    confidence,
+                    distance
+                });
             }
         }
-
-        results.push({
-            imageUrl: photo.imageUrl,
-            confidence,
-            distance
-        });
 
         results.sort((a, b) => b.confidence - a.confidence);
         res.json({ matches: results });
 
     } catch (err) {
-        console.error(err);
+        console.error("❌ Face matching failed:", err);
         res.status(500).json({ message: "Face matching failed" });
     }
 });
