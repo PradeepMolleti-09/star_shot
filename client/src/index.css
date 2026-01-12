@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: "Outfit", -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1d1d1f;
+  background-color: white;
+}
+
+/* Apple-style toast */
+.Toastify__toast {
+  border-radius: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, Inter, sans-serif;
+}
+
+.Toastify__toast--success {
+  background: #f5f5f7;
+  color: #1d1d1f;
+}
+
+.Toastify__toast--error {
+  background: #ffe5e5;
+  color: #1d1d1f;
+}
+
+.Toastify__toast--info {
+  background: #f0f0f0;
+  color: #1d1d1f;
+}
