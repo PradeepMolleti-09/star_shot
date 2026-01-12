@@ -240,12 +240,7 @@ export default function UploadPhotos() {
 
                                     <button
                                         onClick={() => handleDelete(photo._id)}
-                                        disabled={!photo.isProcessed}
-                                        className={`absolute top-3 right-3 text-xs px-4 py-1.5 rounded-full transition
-        ${photo.isProcessed
-                                                ? "bg-black text-white opacity-0 group-hover:opacity-100"
-                                                : "bg-gray-400 text-white cursor-not-allowed opacity-100"
-                                            }`}
+                                        className="absolute top-3 right-3 text-xs px-4 py-1.5 rounded-full bg-black text-white opacity-0 group-hover:opacity-100 transition"
                                     >
                                         Delete
                                     </button>
