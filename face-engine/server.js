@@ -50,7 +50,7 @@ app.post("/match", async (req, res) => {
                 );
 
                 const confidence = Math.round(
-                    Math.max(0, (1 - distance / 0.8)) * 100
+                    Math.max(0, (1 - distance / 0.6)) * 100
                 );
 
                 if (confidence >= 20) {

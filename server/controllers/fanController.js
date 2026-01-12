@@ -110,9 +110,13 @@ export const matchFanSelfie = async (req, res) => {
             }
         );
 
+        const matches = (response.data.matches || []).filter(
+            m => m.confidence >= 30   // 👈 LOWER THIS
+        );
+
         return res.json({
             success: true,
-            matchedImages: response.data.matches || [],
+            matchedImages: matches,
         });
 
     } catch (error) {
