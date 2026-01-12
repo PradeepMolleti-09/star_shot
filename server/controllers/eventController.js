@@ -19,8 +19,12 @@ export const createEvent = async (req, res) => {
             });
         }
 
-        const qrCodeId = uuidv4();
-        const qrUrl = `${process.env.FRONTEND_URL || "http://localhost:5173"}/event/${qrCodeId}`;
+        const qrCodeId = uuidv4(); if (!process.env.FRONTEND_URL) {
+            throw new Error("FRONTEND_URL is not defined");
+        }
+
+        const qrUrl = `${process.env.FRONTEND_URL}/event/${qrCodeId}`;
+
         const qrCodeImage = await QRCode.toDataURL(qrUrl);
 
         const event = await Event.create({
