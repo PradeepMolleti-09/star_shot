@@ -52,7 +52,20 @@ export default function FanUpload() {
             toast.info("Matching your photos…");
 
             const selfieId = uploadRes.data.selfieId;
-            const matchRes = await api.get(`/fan/match/${selfieId}`);
+
+            let matchRes;
+            try {
+                matchRes = await api.get(`/fan/match/${selfieId}`);
+            } catch (err) {
+                // 🟡 Face engine disabled in production
+                if (err.response?.status === 503) {
+                    toast.info("Face matching is disabled in production demo");
+                    setResults([]);
+                    setProgress(100);
+                    return;
+                }
+                throw err; // other errors go to outer catch
+            }
 
             setProgress(100);
 
@@ -63,6 +76,7 @@ export default function FanUpload() {
             }
 
             setResults(matchRes.data.matchedImages);
+
 
         } catch (error) {
             toast.error(

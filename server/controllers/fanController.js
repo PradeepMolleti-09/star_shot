@@ -60,6 +60,15 @@ export const uploadFanSelfie = async (req, res) => {
 ================================================= */
 export const matchFanSelfie = async (req, res) => {
     try {
+        // 🚫 Face engine disabled in production
+        if (process.env.ENABLE_FACE_ENGINE !== "true") {
+            return res.status(503).json({
+                success: false,
+                message: "Face matching is disabled in production",
+                matchedImages: []
+            });
+        }
+
         const { selfieId } = req.params;
 
         const selfie = await FanSelfie.findById(selfieId);
@@ -90,9 +99,6 @@ export const matchFanSelfie = async (req, res) => {
             faceCount: { $gt: 0 },
         });
 
-        /**
-         * REALISTIC THRESHOLDS (tested)
-         */
         const STRONG = 70;
         const GOOD = 55;
         const POSSIBLE = 20;
@@ -106,13 +112,6 @@ export const matchFanSelfie = async (req, res) => {
                 if (!face || face.length !== fanDescriptor.length) continue;
 
                 const distance = matchFace(fanDescriptor, face);
-
-                /**
-                 * 🔥 Better confidence mapping
-                 * Typical distances:
-                 * 0.35–0.45 → SAME PERSON
-                 * 0.55+ → different person
-                 */
                 const confidence = Math.round(
                     Math.max(0, (1 - distance / 0.8)) * 100
                 );
@@ -147,10 +146,11 @@ export const matchFanSelfie = async (req, res) => {
         console.error("❌ matchFanSelfie error:", error);
         return res.status(500).json({
             success: false,
-            message: "Face matching failed",
+            message: "Internal server error",
         });
     }
 };
+
 
 /* =================================================
    3️⃣ ADMIN: GET ALL FAN MATCHES FOR EVENT

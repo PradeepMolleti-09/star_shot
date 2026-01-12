@@ -2,7 +2,7 @@ import * as faceapi from "face-api.js";
 import "@tensorflow/tfjs";
 import path from "path";
 
-let isFaceEngineEnabled = false;
+let faceEngineReady = false;
 
 const MODEL_PATH = path.join(
     process.cwd(),
@@ -12,14 +12,16 @@ const MODEL_PATH = path.join(
 
 /**
  * Initialize face engine (LOCAL ONLY)
+ * Safe for Render
  */
 export const initFaceEngine = async () => {
+    // 🚫 Disable on Render / production
     if (process.env.ENABLE_FACE_ENGINE !== "true") {
         console.log("⚠️ Face engine disabled (production)");
         return;
     }
 
-    // ✅ canvas is imported ONLY when this function is called
+    // ✅ canvas imported ONLY inside function
     const canvasModule = await import("canvas");
     const { Canvas, Image, ImageData } = canvasModule;
 
@@ -29,11 +31,8 @@ export const initFaceEngine = async () => {
     await faceapi.nets.faceLandmark68Net.loadFromDisk(MODEL_PATH);
     await faceapi.nets.faceRecognitionNet.loadFromDisk(MODEL_PATH);
 
-    isFaceEngineEnabled = true;
+    faceEngineReady = true;
     console.log("🧠 Face AI models loaded");
 };
 
-/**
- * Helper check
- */
-export const isFaceEngineReady = () => isFaceEngineEnabled;
+export const isFaceEngineReady = () => faceEngineReady;
