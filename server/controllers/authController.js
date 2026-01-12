@@ -88,11 +88,14 @@ export const login = async (req, res) => {
 export const logout = async (req, res) => {
     res.cookie("token", "", {
         httpOnly: true,
+        secure: true,
+        sameSite: "none",
         expires: new Date(0),
     });
 
     res.json({ success: true });
 };
+
 
 /* ================= ME ================= */
 export const getMe = async (req, res) => {
