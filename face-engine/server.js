@@ -71,7 +71,7 @@ app.post("/match", async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () =>
-    console.log(`🚀 Face engine running on port ${PORT}`)
-);
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+    console.log(`🚀 Face engine running on port ${PORT}`);
+});
