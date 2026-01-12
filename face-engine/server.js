@@ -50,7 +50,10 @@ app.post("/extract", async (req, res) => {
         const img = await loadImage(imageUrl);
 
         const detections = await faceapi
-            .detectAllFaces(img)
+            .detectAllFaces(
+                img,
+                new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })
+            )
             .withFaceLandmarks()
             .withFaceDescriptors();
 
