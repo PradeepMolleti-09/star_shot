@@ -18,7 +18,6 @@ const photoSchema = new mongoose.Schema(
             type: [Array],
             default: []
         },
-        isProcessed: { type: Boolean, default: false },
         faceCount: { type: Number, default: 0 },
 
         // ❌ KEEP THESE OPTIONAL (not used for hard delete)

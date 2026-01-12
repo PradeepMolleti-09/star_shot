@@ -110,9 +110,11 @@ export const matchFanSelfie = async (req, res) => {
             }
         );
 
-        const rawMatches = (response.data.matches || []).filter(
-            m => m.confidence >= 45 && m.distance <= 0.6
-        );
+        const rawMatches = (response.data.matches || [])
+            .filter(m =>
+                m.distance <= 0.7 && m.confidence >= 35
+            )
+            .sort((a, b) => b.confidence - a.confidence);
 
         // ✅ KEEP ONLY BEST MATCH PER PHOTO
         const uniqueMatchesMap = {};
