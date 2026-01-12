@@ -16,10 +16,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
-    "canvas": "^3.2.1",
     "cloudinary": "^2.8.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
