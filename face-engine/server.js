@@ -42,6 +42,30 @@ app.get("/", async (req, res) => {
     }
 });
 
+app.post("/extract", async (req, res) => {
+    try {
+        await loadModels();
+
+        const { imageUrl } = req.body;
+        const img = await loadImage(imageUrl);
+
+        const detections = await faceapi
+            .detectAllFaces(img)
+            .withFaceLandmarks()
+            .withFaceDescriptors();
+
+        const descriptors = detections.map(d =>
+            Array.from(d.descriptor)
+        );
+
+        res.json({ descriptors });
+
+    } catch (err) {
+        console.error("❌ Face extraction failed:", err);
+        res.status(500).json({ descriptors: [] });
+    }
+});
+
 /* ---------------- MATCH ENDPOINT ---------------- */
 app.post("/match", async (req, res) => {
     try {
